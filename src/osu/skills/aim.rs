@@ -11,6 +11,7 @@ pub(crate) struct Aim {
     curr_section_end: f64,
     pub(crate) strain_peaks: Vec<f64>,
     with_sliders: bool,
+    pub(crate) object_strains: Vec<f64>,
 }
 
 impl Aim {
@@ -24,7 +25,24 @@ impl Aim {
             curr_section_end: 0.0,
             strain_peaks: Vec::new(),
             with_sliders,
+            object_strains: Vec::new(),
         }
+    }
+
+    pub(crate) fn count_difficult_strains(&mut self, clock_rate: f64) -> f64 {
+        let top_strain = self
+            .object_strains
+            .clone()
+            .into_iter()
+            .reduce(f64::max)
+            .unwrap();
+        let realtime_count: f64 = self
+            .object_strains
+            .iter()
+            .map(|&x| f64::powf(x / top_strain, 4.0))
+            .sum();
+
+        clock_rate * realtime_count
     }
 
     fn strain_decay(ms: f64) -> f64 {
@@ -74,6 +92,7 @@ impl StrainSkill for Aim {
         self.curr_strain += AimEvaluator::evaluate_diff_of(curr, diff_objects, self.with_sliders)
             * Self::SKILL_MULTIPLIER;
 
+        self.object_strains.push(self.curr_strain);
         self.curr_strain
     }
 

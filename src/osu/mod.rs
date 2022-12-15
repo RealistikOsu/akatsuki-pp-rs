@@ -113,6 +113,7 @@ impl<'map> OsuStars<'map> {
     #[inline]
     pub fn calculate(self) -> OsuDifficultyAttributes {
         let mods = self.mods;
+        let clock_rate = self.clock_rate;
 
         let (skills, mut attrs) = calculate_skills(self);
 
@@ -177,10 +178,16 @@ impl<'map> OsuStars<'map> {
             0.0
         };
 
+        let clock_rate = clock_rate.unwrap_or_else(|| mods.clock_rate());
+        let aim_difficult_strain_count = aim.count_difficult_strains(clock_rate);
+        let speed_difficult_strain_count = speed.count_difficult_strains(clock_rate);
+
         attrs.aim = aim_rating;
         attrs.speed = speed_rating;
         attrs.flashlight = flashlight_rating;
         attrs.slider_factor = slider_factor;
+        attrs.aim_difficult_strain_count = aim_difficult_strain_count;
+        attrs.speed_difficult_strain_count = speed_difficult_strain_count;
         attrs.stars = star_rating;
         attrs.speed_note_count = speed_notes;
 
@@ -531,6 +538,10 @@ pub struct OsuDifficultyAttributes {
     pub stars: f64,
     /// The maximum combo.
     pub max_combo: usize,
+    /// The amount of difficult aim strains in the map.
+    pub aim_difficult_strain_count: f64,
+    /// The amount of difficult speed strains in the map.
+    pub speed_difficult_strain_count: f64,
 }
 
 impl OsuDifficultyAttributes {
