@@ -687,7 +687,7 @@ fn calculate_miss_penalty(n_misses: f64, difficult_strain_count: f64) -> f64 {
     // Miss penalty assumes that a player will miss on the hardest parts of a map,
     // so we use the amount of relatively difficult sections to adjust miss penalty
     // to make it more punishing on maps with lower amount of hard sections.
-    0.94 / ((n_misses / (2.0 * f64::sqrt(difficult_strain_count))) + 1.0)
+    0.93 / ((n_misses / (2.0 * f64::sqrt(difficult_strain_count))) + 1.0)
 }
 
 fn calculate_effective_misses(attrs: &OsuDifficultyAttributes, state: &OsuScoreState) -> f64 {
