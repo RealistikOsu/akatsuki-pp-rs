@@ -178,9 +178,8 @@ impl<'map> OsuStars<'map> {
             0.0
         };
 
-        let clock_rate = clock_rate.unwrap_or_else(|| mods.clock_rate());
-        let aim_difficult_strain_count = aim.count_difficult_strains(clock_rate);
-        let speed_difficult_strain_count = speed.count_difficult_strains(clock_rate);
+        let aim_difficult_strain_count = aim.count_difficult_strains();
+        let speed_difficult_strain_count = speed.count_difficult_strains();
 
         attrs.aim = aim_rating;
         attrs.speed = speed_rating;

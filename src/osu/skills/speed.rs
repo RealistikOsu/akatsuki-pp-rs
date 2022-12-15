@@ -37,7 +37,7 @@ impl Speed {
         Self::STRAIN_DECAY_BASE.powf(ms / 1000.0)
     }
 
-    pub(crate) fn count_difficult_strains(&mut self, clock_rate: f64) -> f64 {
+    pub(crate) fn count_difficult_strains(&mut self) -> f64 {
         let top_strain = self
             .object_strains
             .clone()
@@ -50,7 +50,7 @@ impl Speed {
             .map(|&x| f64::powf(x / top_strain, 4.0))
             .sum();
 
-        clock_rate * realtime_count
+        realtime_count
     }
 
     pub(crate) fn relevant_note_count(&self) -> f64 {
