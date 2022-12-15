@@ -113,7 +113,6 @@ impl<'map> OsuStars<'map> {
     #[inline]
     pub fn calculate(self) -> OsuDifficultyAttributes {
         let mods = self.mods;
-        let clock_rate = self.clock_rate;
 
         let (skills, mut attrs) = calculate_skills(self);
 
