@@ -478,8 +478,6 @@ impl OsuPpInner {
             );
         }
 
-        aim_value *= self.get_combo_scaling_factor();
-
         let ar_factor = if self.mods.rx() {
             0.0
         } else if self.attrs.ar > 10.33 {
@@ -543,8 +541,6 @@ impl OsuPpInner {
                 self.attrs.speed_difficult_strain_count,
             );
         }
-
-        speed_value *= self.get_combo_scaling_factor();
 
         let ar_factor = if self.mods.ap() {
             0.0
@@ -687,7 +683,7 @@ fn calculate_miss_penalty(n_misses: f64, difficult_strain_count: f64) -> f64 {
     // Miss penalty assumes that a player will miss on the hardest parts of a map,
     // so we use the amount of relatively difficult sections to adjust miss penalty
     // to make it more punishing on maps with lower amount of hard sections.
-    0.96 / ((n_misses / (2.0 * f64::sqrt(difficult_strain_count))) + 1.0)
+    0.94 / ((n_misses / (2.0 * f64::sqrt(difficult_strain_count))) + 1.0)
 }
 
 fn calculate_effective_misses(attrs: &OsuDifficultyAttributes, state: &OsuScoreState) -> f64 {
