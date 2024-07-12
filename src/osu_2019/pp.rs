@@ -286,7 +286,7 @@ impl<'m> OsuPP<'m> {
             pp *= 1.025;
         }
 
-        if self.map.creator == "gwb" || self.map.creator == "Plasma" {
+        if self.map.creator == "gwb" || self.map.creator == "Plasma" || self.map.creator == "ParkourWizard" {
             pp *= 0.9;
         }
 
@@ -322,6 +322,9 @@ impl<'m> OsuPP<'m> {
 
             // Apocalypse 1992 [Universal Annihilation]
             2382377 => 0.85,
+
+            // Misogiharae no Kamiumi wa Notamai, Magabarai no Shokuzai wa Chikau. [Goofy (ft. Hoshino)]
+            4251768 => 0.75,
 
             _ => 1.0,
         };
