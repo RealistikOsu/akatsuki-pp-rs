@@ -265,7 +265,7 @@ impl<'m> OsuPP<'m> {
 
             if streams_nerf < 1.09 {
                 let acc_factor = (1.0 - self.acc.unwrap()).abs();
-                acc_depression = (0.84 - acc_factor).max(0.5);
+                acc_depression = (0.85 - acc_factor).max(0.5);
 
                 if acc_depression > 0.0 {
                     aim_value *= acc_depression;
@@ -289,7 +289,7 @@ impl<'m> OsuPP<'m> {
         };
 
         let acc_factor = match self.mods.rx() {
-            true => acc_value.powf(1.14 * nodt_bonus),
+            true => acc_value.powf(1.15 * nodt_bonus),
             false => acc_value.powf(1.1),
         };
 
@@ -398,7 +398,7 @@ impl<'m> OsuPP<'m> {
         // HD bonus
         if self.mods.hd() {
             aim_value *= match self.mods.rx() {
-                true => 1.0 + 0.05 * (11.0 - attributes.ar) as f32,
+                true => 1.0 + 0.045 * (11.0 - attributes.ar) as f32,
                 false => 1.0 + 0.04 * (12.0 - attributes.ar) as f32,
             }
         }
@@ -445,7 +445,7 @@ impl<'m> OsuPP<'m> {
         }
 
         // Scale with accuracy
-        let acc_factor = if self.mods.rx() { 0.3 } else { 0.5 };
+        let acc_factor = if self.mods.rx() { 0.4 } else { 0.5 };
         aim_value *= acc_factor + self.acc.unwrap() / 2.0;
         aim_value *= 0.98 + attributes.od as f32 * attributes.od as f32 / 2500.0;
 
@@ -494,7 +494,7 @@ impl<'m> OsuPP<'m> {
         // HD bonus
         if self.mods.hd() {
             speed_value *= match self.mods.rx() {
-                true => 1.0 + 0.05 * (11.0 - attributes.ar) as f32,
+                true => 1.0 + 0.045 * (11.0 - attributes.ar) as f32,
                 false => 1.0 + 0.04 * (12.0 - attributes.ar) as f32,
             }
         }
@@ -534,12 +534,12 @@ impl<'m> OsuPP<'m> {
 
         // HD bonus
         if self.mods.hd() {
-            acc_value *= 1.08;
+            acc_value *= 1.06;
         }
 
         // FL bonus
         if self.mods.fl() {
-            acc_value *= 1.02;
+            acc_value *= 1.022;
         }
 
         acc_value
