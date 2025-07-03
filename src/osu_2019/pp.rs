@@ -320,7 +320,7 @@ impl<'m> OsuPP<'m> {
             ar_factor = 0.025 * (8.0 - attributes.ar);
         }
 
-        aim_value *= 1.0 + ar_factor as f32 * len_bonus;
+        aim_value *= 1.0 + ar_factor as f32;
 
         // HD bonus
         if self.mods.hd() {
@@ -350,12 +350,6 @@ impl<'m> OsuPP<'m> {
         let mut speed_value =
             (5.0 * (attributes.speed_strain as f32 / 0.0675).max(1.0) - 4.0).powi(3) / 100_000.0;
 
-        // Longer maps are worth more
-        let len_bonus = 0.88
-            + 0.4 * (total_hits / 2000.0).min(1.0)
-            + (total_hits > 2000.0) as u8 as f32 * 0.5 * (total_hits / 2000.0).log10();
-        speed_value *= len_bonus;
-
         // Penalize misses
         if effective_miss_count > 0.0 {
             let miss_penalty = self.calculate_miss_penalty(
@@ -377,7 +371,7 @@ impl<'m> OsuPP<'m> {
                 ar_factor = 0.025 * (8.0 - attributes.ar);
             }
 
-            speed_value *= 1.0 + ar_factor as f32 * len_bonus;
+            speed_value *= 1.0 + ar_factor as f32;
         }
 
         // HD bonus
