@@ -12,6 +12,10 @@ const SPEED_BALANCING_FACTOR: f32 = 40.0;
 const AIM_ANGLE_BONUS_BEGIN: f32 = std::f32::consts::FRAC_PI_3;
 const TIMING_THRESHOLD: f32 = 107.0;
 
+/// Nerf factor applied to stream-like (low-distance, low-angle) patterns in relax mode.
+/// Pure streams (dist=0) receive 65% of normal strain; jumps are unaffected.
+const RELAX_STREAM_NERF_FLOOR: f32 = 0.65;
+
 #[derive(Copy, Clone)]
 pub(crate) enum SkillKind {
     Aim,
@@ -85,10 +89,17 @@ impl SkillKind {
                     }
                 }
 
-                (1.0 + (speed_bonus - 1.0) * 0.75)
+                let strain = (1.0 + (speed_bonus - 1.0) * 0.75)
                     * angle_bonus
                     * (0.95 + speed_bonus * (dist / SINGLE_SPACING_TRESHOLD).powf(3.5))
-                    / current.strain_time
+                    / current.strain_time;
+
+                // Apply a nerf to stream-like (flow aim) patterns.
+                // The nerf scales from RELAX_STREAM_NERF_FLOOR (pure stream, dist≈0)
+                // up to 1.0 (jump, dist=SINGLE_SPACING_THRESHOLD), so jumps are unaffected.
+                let stream_nerf = RELAX_STREAM_NERF_FLOOR
+                    + (1.0 - RELAX_STREAM_NERF_FLOOR) * (dist / SINGLE_SPACING_TRESHOLD);
+                strain * stream_nerf
             }
         }
     }
