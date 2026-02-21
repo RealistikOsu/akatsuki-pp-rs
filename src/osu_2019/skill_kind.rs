@@ -12,6 +12,15 @@ const SPEED_BALANCING_FACTOR: f32 = 40.0;
 const AIM_ANGLE_BONUS_BEGIN: f32 = std::f32::consts::FRAC_PI_3;
 const TIMING_THRESHOLD: f32 = 107.0;
 
+/// Nerf factor applied to stream-like (flow aim) patterns in relax mode.
+/// Uses a cubic curve so the penalty remains strong even at moderate distances
+/// (typical streams land at ~80% of SINGLE_SPACING_THRESHOLD after scaling):
+///   dist=0%   → 0.25× strain (75% reduction)
+///   dist=80%  → 0.63× strain (37% reduction)
+///   dist=90%  → 0.80× strain (20% reduction)
+///   dist=100% → 1.00× strain (jumps unaffected)
+const RELAX_STREAM_NERF_FLOOR: f32 = 0.25;
+
 #[derive(Copy, Clone)]
 pub(crate) enum SkillKind {
     Aim,
@@ -85,10 +94,19 @@ impl SkillKind {
                     }
                 }
 
-                (1.0 + (speed_bonus - 1.0) * 0.75)
+                let strain = (1.0 + (speed_bonus - 1.0) * 0.75)
                     * angle_bonus
                     * (0.95 + speed_bonus * (dist / SINGLE_SPACING_TRESHOLD).powf(3.5))
-                    / current.strain_time
+                    / current.strain_time;
+
+                // Apply a nerf to stream-like (flow aim) patterns.
+                // Cubic curve keeps the penalty strong even at moderate distances
+                // (~80% of threshold for typical CS4 streams), while full jumps
+                // (dist = SINGLE_SPACING_THRESHOLD) remain completely unaffected.
+                let stream_nerf = RELAX_STREAM_NERF_FLOOR
+                    + (1.0 - RELAX_STREAM_NERF_FLOOR)
+                        * (dist / SINGLE_SPACING_TRESHOLD).powi(3);
+                strain * stream_nerf
             }
         }
     }
