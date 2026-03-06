@@ -1,3 +1,8 @@
+# v1.2.0 (2026-03-06)
+
+- __Additions:__
+  - Added support for custom clock rates in `osu_2019` (std!relax pp) calculation.
+
 # v1.1.0 (2024-07-10)
 
 - __Additions:__
