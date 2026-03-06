@@ -26,8 +26,15 @@ pub fn stars(
     map: &Beatmap,
     mods: GameMods,
     passed_objects: Option<u32>,
+    clock_rate: Option<f64>,
 ) -> OsuDifficultyAttributes {
-    let map_attributes = map.attributes().mods(mods).build();
+    let mut builder = map.attributes().mods(mods);
+
+    if let Some(clock_rate) = clock_rate {
+        builder = builder.clock_rate(clock_rate);
+    }
+
+    let map_attributes = builder.build();
 
     let mut diff_attributes = OsuDifficultyAttributes {
         ar: map_attributes.ar,

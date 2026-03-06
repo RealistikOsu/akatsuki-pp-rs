@@ -42,6 +42,7 @@ pub struct OsuPP<'m> {
     n_misses: u32,
 
     passed_objects: Option<u32>,
+    clock_rate: Option<f64>,
 }
 
 impl<'m> OsuPP<'m> {
@@ -59,6 +60,7 @@ impl<'m> OsuPP<'m> {
             n50: None,
             n_misses: 0,
             passed_objects: None,
+            clock_rate: None,
         }
     }
 
@@ -76,6 +78,7 @@ impl<'m> OsuPP<'m> {
             n50: None,
             n_misses: 0,
             passed_objects: None,
+            clock_rate: None,
         }
     }
 
@@ -132,6 +135,14 @@ impl<'m> OsuPP<'m> {
     #[inline]
     pub fn passed_objects(mut self, passed_objects: u32) -> Self {
         self.passed_objects.replace(passed_objects);
+
+        self
+    }
+
+    /// Specify a custom clock rate.
+    #[inline]
+    pub fn clock_rate(mut self, clock_rate: f64) -> Self {
+        self.clock_rate = Some(clock_rate);
 
         self
     }
@@ -235,7 +246,12 @@ impl<'m> OsuPP<'m> {
     /// containing stars and other attributes.
     pub fn calculate(mut self) -> OsuPerformanceAttributes {
         if self.attributes.is_none() {
-            let attributes = stars(self.map.unwrap(), self.mods.clone(), self.passed_objects);
+            let attributes = stars(
+                self.map.unwrap(),
+                self.mods.clone(),
+                self.passed_objects,
+                self.clock_rate,
+            );
             self.attributes.replace(attributes);
         }
 
