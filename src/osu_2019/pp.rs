@@ -279,8 +279,15 @@ impl<'m> OsuPP<'m> {
             ((difficulty.aim_strain / difficulty.speed_strain) * 100.0).round() / 100.0;
 
         if streams_nerf < 1.09 {
-            aim_value *= 0.27;
-            speed_value *= 0.3;
+            // slightly less nerfed if acc >98.5%
+            let acc_improvement = (self.acc.unwrap() - 0.985).max(0.0);
+            let acc_factor = 1.0 + (acc_improvement * 25.0).powf(2.0);
+
+            let aim_nerf = (0.25 * acc_factor).min(1.0);
+            let speed_nerf = (0.35 * acc_factor).min(1.0);
+
+            aim_value *= aim_nerf;
+            speed_value *= speed_nerf;
         }
 
         let pp = (aim_value.powf(1.185) + speed_value.powf(0.83) + acc_value.powf(1.14))
