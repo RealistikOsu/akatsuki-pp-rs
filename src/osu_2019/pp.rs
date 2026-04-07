@@ -279,8 +279,8 @@ impl<'m> OsuPP<'m> {
             ((difficulty.aim_strain / difficulty.speed_strain) * 100.0).round() / 100.0;
 
         if streams_nerf < 1.09 {
-            aim_value *= 0.35;
-            speed_value *= 0.22;
+            aim_value *= 0.27;
+            speed_value *= 0.3;
         }
 
         let pp = (aim_value.powf(1.185) + speed_value.powf(0.83) + acc_value.powf(1.14))
