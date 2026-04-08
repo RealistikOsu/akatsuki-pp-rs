@@ -85,6 +85,35 @@ impl Skill {
     }
 
     pub(crate) fn difficulty_value(&mut self) -> f32 {
+        if self.strain_peaks.is_empty() {
+            return 0.0;
+        }
+
+        // --- Backload Spike Penalty Logic ---
+        // We identify maps that dump all their difficulty into the final moments.
+        let n_sections = self.strain_peaks.len();
+        let early_section_count = (n_sections as f32 * 0.85).floor() as usize;
+
+        if n_sections > 5 && early_section_count > 0 {
+            // 1. Calculate average strain of the first 85% (the "baseline")
+            let early_sum: f32 = self.strain_peaks.iter().take(early_section_count).sum();
+            let early_avg = early_sum / early_section_count as f32;
+
+            // 2. Identify and nerf spikes in the final 15%
+            // Only nerf if the section is significantly harder than the early average.
+            let spike_threshold = (early_avg * 1.35).max(1.0); // Penalty starts at 35% harder than average
+
+            for i in early_section_count..n_sections {
+                let peak = self.strain_peaks[i];
+                if peak > spike_threshold {
+                    // Penalty: pull the peak towards the baseline.
+                    // NewPeak = Threshold + (OldPeak - Threshold) * 0.5 (linear dampening)
+                    self.strain_peaks[i] = spike_threshold + (peak - spike_threshold) * 0.5;
+                }
+            }
+        }
+        // ------------------------------------
+
         let mut difficulty = 0.0;
         let mut weight = 1.0;
 
