@@ -287,7 +287,6 @@ impl<'m> OsuPP<'m> {
             if acc_depression > 0.0 {
                 aim_value *= acc_depression;
                 speed_value *= acc_depression;
-                // reading_value intentionally NOT affected by streams nerf
             }
         }
 
@@ -341,8 +340,6 @@ impl<'m> OsuPP<'m> {
             aim_value *= miss_penalty;
         }
 
-        // AR and HD bonuses removed — now handled by Reading skill
-
         // FL bonus
         if self.mods.fl() {
             aim_value *= 1.0
@@ -386,8 +383,6 @@ impl<'m> OsuPP<'m> {
             speed_value *= miss_penalty;
         }
 
-        // AR and HD bonuses removed — now handled by Reading skill
-
         // Scaling the speed value with accuracy and OD
         speed_value *= (0.93 + attributes.od as f32 * attributes.od as f32 / 750.0)
             * self
@@ -419,8 +414,6 @@ impl<'m> OsuPP<'m> {
 
         // Bonus for many hitcircles
         acc_value *= ((n_circles as f32 / 1000.0).powf(0.3)).min(1.15);
-
-        // HD bonus on accuracy removed — now handled by Reading skill
 
         // FL bonus
         if self.mods.fl() {
