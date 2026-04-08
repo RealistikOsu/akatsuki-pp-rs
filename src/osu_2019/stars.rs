@@ -224,19 +224,12 @@ pub fn stars(
     // Star rating: aim + speed + reading + largest component bonus
     let components = [aim_strain, speed_strain, reading_strain];
     let sum: f32 = components.iter().sum();
-    let max_component = components
-        .iter()
-        .cloned()
-        .fold(0.0_f32, f32::max);
+    let max_component = components.iter().cloned().fold(0.0_f32, f32::max);
     // The original formula was: aim + speed + |aim - speed| / 2
     // Which equals: max(aim, speed) + min(aim, speed) / 2 + max(aim, speed) / 2
     // = 1.5 * max + 0.5 * min. Generalizing to 3 components:
     // sum + max_component_bonus (extra weight to the hardest component)
     let stars = sum + (max_component - sum / components.len() as f32).abs() / 2.0;
-
-    // Debug: check for inf/nan
-    eprintln!("aim_strain={aim_strain}, speed_strain={speed_strain}, reading_strain={reading_strain}");
-    eprintln!("reading_difficulty_value={reading_difficulty_value}, reading_difficult_note_count={reading_difficult_note_count}");
 
     diff_attributes.stars = stars as f64;
     diff_attributes.speed_strain = speed_strain as f64;
