@@ -17,6 +17,7 @@ impl SpeedEvaluator {
         diff_objects: &'a [OsuDifficultyObject<'a>],
         hit_window: f64,
         autopilot: bool,
+        clock_rate: f64,
     ) -> f64 {
         if curr.base.is_spinner() {
             return 0.0;
@@ -37,12 +38,23 @@ impl SpeedEvaluator {
         // * 0.93 is derived from making sure 260bpm OD8 streams aren't nerfed harshly, whilst 0.92 limits the effect of the cap.
         strain_time /= ((strain_time / hit_window) / 0.93).clamp(0.92, 1.0);
 
+        let rate_penalty = if clock_rate < 1.0 {
+            1.0 - 0.9 * (1.0 - clock_rate)
+        } else if clock_rate < 1.5 {
+            1.0 - 0.7 * (clock_rate - 1.0)
+        } else {
+            0.5 - 0.7 * (clock_rate - 1.5)
+        }
+        .clamp(0.95, 1.0);
+
         let speed_bonus = if milliseconds_to_bpm(strain_time, None) > Self::MIN_SPEED_BONUS {
-            // * Add additional scaling bonus for streams/bursts higher than 200bpm
+            // * Add additional scaling bonus for streams/bursts higher than 200bpm.
+            // * Rate changes are slightly nerfed so clock-rate adjusted streams
+            // * don't overtake their original difficulty as aggressively.
             let base = (bpm_to_milliseconds(Self::MIN_SPEED_BONUS, None) - strain_time)
                 / Self::SPEED_BALANCING_FACTOR;
 
-            0.75 * base.powf(2.0)
+            0.75 * base.powf(2.0) * rate_penalty
         } else {
             // * speedBonus will be 0.0 for BPM < 200
             0.0
@@ -65,7 +77,7 @@ impl SpeedEvaluator {
         }
 
         // * Base difficulty with all bonuses
-        let difficulty = (1.0 + speed_bonus + dist_bonus) * 1000.0 / strain_time;
+        let difficulty = (1.0 + speed_bonus + dist_bonus) * 1000.0 / strain_time * rate_penalty;
 
         // * Apply penalty if there's doubletappable doubles
         difficulty * doubletapness

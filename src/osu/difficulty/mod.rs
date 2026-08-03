@@ -160,7 +160,13 @@ impl DifficultyValues {
 
         let great_hit_window = map_attrs.hit_windows().od_great.unwrap_or(0.0);
 
-        let mut skills = OsuSkills::new(mods, &scaling_factor, great_hit_window, time_preempt);
+        let mut skills = OsuSkills::new(
+            mods,
+            &scaling_factor,
+            great_hit_window,
+            time_preempt,
+            difficulty.get_clock_rate(),
+        );
 
         // The first hit object has no difficulty object
         let take_diff_objects = cmp::min(map.hit_objects.len(), take).saturating_sub(1);

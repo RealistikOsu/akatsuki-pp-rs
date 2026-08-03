@@ -8,6 +8,7 @@ const PI_OVER_2: f32 = std::f32::consts::FRAC_PI_2;
 const MIN_SPEED_BONUS: f32 = 75.0;
 const MAX_SPEED_BONUS: f32 = 45.0;
 const SPEED_BALANCING_FACTOR: f32 = 40.0;
+const RATE_PENALTY_MIN: f32 = 0.7;
 
 const AIM_ANGLE_BONUS_BEGIN: f32 = std::f32::consts::FRAC_PI_3;
 const TIMING_THRESHOLD: f32 = 107.0;
@@ -97,6 +98,15 @@ impl SkillKind {
                     speed_bonus += exp_base * exp_base;
                 }
 
+                let rate_penalty = if current.clock_rate < 1.0 {
+                    1.0 - 0.9 * (1.0 - current.clock_rate)
+                } else if current.clock_rate < 1.5 {
+                    1.0 - 0.7 * (current.clock_rate - 1.0)
+                } else {
+                    1.5 - 0.01 * (current.clock_rate - 1.5)
+                }
+                .clamp(RATE_PENALTY_MIN, 1.0);
+
                 let mut angle_bonus = 1.0;
 
                 if let Some(angle) = current.angle.filter(|a| *a < SPEED_ANGLE_BONUS_BEGIN) {
@@ -120,6 +130,7 @@ impl SkillKind {
                     * angle_bonus
                     * (0.95 + speed_bonus * (dist / SINGLE_SPACING_TRESHOLD).powf(3.5))
                     / current.strain_time
+                    * rate_penalty
             }
         }
     }
@@ -182,7 +193,7 @@ fn vector_angle_repetition(current: &DifficultyObject<'_>, recent_objects: &[Rec
         (2.0 * ((curr_angle - last_angle).abs() * stack_factor).min(45.0_f32.to_radians())).cos();
 
     // Reduce acute bonus when all three objects overlap and require little extra movement.
-    let mut overlapped_notes_weight = 1.0;
+    let mut overlapped_notes_weight = 3.0;
 
     if recent_objects.len() >= 2 {
         let prev_prev = &recent_objects[1];

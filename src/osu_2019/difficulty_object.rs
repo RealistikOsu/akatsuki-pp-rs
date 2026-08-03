@@ -16,6 +16,7 @@ pub(crate) struct DifficultyObject<'h> {
 
     pub(crate) delta: f32,
     pub(crate) strain_time: f32,
+    pub(crate) clock_rate: f32,
 }
 
 impl<'h> DifficultyObject<'h> {
@@ -74,6 +75,7 @@ impl<'h> DifficultyObject<'h> {
 
             delta,
             strain_time,
+            clock_rate,
         }
     }
 }

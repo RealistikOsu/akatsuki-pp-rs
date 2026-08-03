@@ -92,6 +92,23 @@ impl<'m> OsuPP<'m> {
         self
     }
 
+    /// Specify mods together with an optional custom clock rate.
+    ///
+    /// This is useful when score payloads provide `mods` and `clock_rate`
+    /// as separate fields. If `clock_rate` is `Some`, it overrides the
+    /// default mod-derived rate (e.g. DT `1.5`).
+    #[inline]
+    pub fn mods_with_clock_rate(
+        mut self,
+        mods: impl Into<GameMods>,
+        clock_rate: Option<f64>,
+    ) -> Self {
+        self.mods = mods.into();
+        self.clock_rate = clock_rate;
+
+        self
+    }
+
     /// Specify the max combo of the play.
     #[inline]
     pub fn combo(mut self, combo: u32) -> Self {
@@ -368,7 +385,7 @@ impl<'m> OsuPP<'m> {
             + (total_hits > 2000.0) as u8 as f32 * -0.1 * (total_hits / 2000.0).log10();
 
         if len_bonus > 1.0 {
-            len_bonus = len_bonus.powf(3.0);
+            len_bonus = len_bonus.powf(0.9);
         }
 
         speed_value *= len_bonus;
