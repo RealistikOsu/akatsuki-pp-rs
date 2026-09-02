@@ -18,6 +18,7 @@ define_skill! {
         current_rhythm: f64 = 0.0,
         hit_window: f64,
         has_autopilot_mod: bool,
+        clock_rate: f64,
         slider_strains: Vec<f64> = Vec::with_capacity(64),
     }
 }
@@ -52,6 +53,7 @@ impl Speed {
             objects,
             self.hit_window,
             self.has_autopilot_mod,
+            self.clock_rate,
         ) * Self::SKILL_MULTIPLIER;
         self.current_rhythm = RhythmEvaluator::evaluate_diff_of(curr, objects, self.hit_window);
 

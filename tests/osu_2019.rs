@@ -18,6 +18,31 @@ fn osu_2019_clock_rate() {
 }
 
 #[test]
+fn osu_2019_custom_dt_clock_rate() {
+    let map = Beatmap::from_path(common::OSU).unwrap();
+
+    let dt_default = OsuPP::from_map(&map).mods(64).calculate();
+    let dt_custom = OsuPP::from_map(&map)
+        .mods_with_clock_rate(64, Some(1.7))
+        .calculate();
+
+    assert_ne!(dt_custom.pp, dt_default.pp);
+    assert_ne!(dt_custom.difficulty.stars, dt_default.difficulty.stars);
+    assert!(dt_custom.pp > dt_default.pp);
+    assert!(dt_custom.difficulty.stars > dt_default.difficulty.stars);
+}
+
+#[test]
+fn osu_2019_speed_is_penalized_on_clock_rate_change() {
+    let map = Beatmap::from_path(common::OSU).unwrap();
+
+    let base = OsuPP::from_map(&map).calculate();
+    let slowed = OsuPP::from_map(&map).clock_rate(0.8).calculate();
+
+    assert!(slowed.difficulty.speed_strain < base.difficulty.speed_strain);
+}
+
+#[test]
 fn osu_2019_mods() {
     let map = Beatmap::from_path(common::OSU).unwrap();
 
