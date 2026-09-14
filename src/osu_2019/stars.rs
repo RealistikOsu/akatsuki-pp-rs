@@ -195,6 +195,7 @@ pub fn stars(
     // Raw preempt = hit_windows.ar * clock_rate
     let time_preempt_raw = map_attributes.hit_windows().ar.unwrap() as f32 * map_attributes.clock_rate() as f32;
     let preempt = map_attributes.hit_windows().ar.unwrap() as f32; // already clock-rate adjusted
+    diff_attributes.effective_ar = f64::from(preempt_to_ar(preempt));
     let time_fade_in_raw = 400.0 * (time_preempt_raw / PREEMPT_MIN).min(1.0);
     let hd_fade_in_raw = time_preempt_raw * 0.4; // HD TimeFadeIn
 
@@ -243,6 +244,15 @@ pub fn stars(
     diff_attributes
 }
 
+/// Inverse of [`ar_to_preempt`]: convert a (possibly clock-rate adjusted) preempt back to an AR value.
+fn preempt_to_ar(preempt: f32) -> f32 {
+    if preempt < AR_PREEMPT_MID {
+        5.0 + 5.0 * (AR_PREEMPT_MID - preempt) / (AR_PREEMPT_MID - AR_PREEMPT_MAX)
+    } else {
+        5.0 - 5.0 * (preempt - AR_PREEMPT_MID) / (AR_PREEMPT_MIN - AR_PREEMPT_MID)
+    }
+}
+
 /// Convert AR value to preempt time in ms (raw, not clock-rate adjusted)
 #[allow(dead_code)]
 fn ar_to_preempt(ar: f32) -> f32 {
@@ -261,6 +271,9 @@ pub struct OsuDifficultyAttributes {
     pub speed_strain: f64,
     pub reading_strain: f64,
     pub ar: f64,
+    /// AR after mods *and* clock rate, i.e. what the player actually sees.
+    /// `ar` is the raw mod-adjusted value (EZDT keeps EZ's halved AR there).
+    pub effective_ar: f64,
     pub od: f64,
     pub hp: f64,
     pub cs: f64,
