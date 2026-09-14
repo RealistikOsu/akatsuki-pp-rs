@@ -82,3 +82,19 @@ fn osu_2019_misses() {
     assert!(fc.pp > miss1.pp);
     assert!(miss1.pp > miss10.pp);
 }
+
+#[test]
+fn osu_2019_relax_ez_rework() {
+    let map = Beatmap::from_path(common::OSU).unwrap();
+
+    let ez = OsuPP::from_map(&map).mods(2).accuracy(99.0).calculate();
+    let ez_dt = OsuPP::from_map(&map).mods(2 + 64).accuracy(99.0).calculate();
+
+    assert!(ez.pp.is_finite() && ez.pp > 0.0);
+    assert!(ez.pp_aim > 0.0);
+
+    // Raw AR stays halved, effective AR grows with the clock rate.
+    assert!((ez.difficulty.ar - ez_dt.difficulty.ar).abs() < 1e-6);
+    assert!(ez_dt.difficulty.effective_ar > ez.difficulty.effective_ar);
+    assert!(ez.difficulty.effective_ar < 8.0);
+}

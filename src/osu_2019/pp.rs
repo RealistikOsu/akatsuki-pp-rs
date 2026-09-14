@@ -1,6 +1,36 @@
 use crate::osu_2019::stars::{stars, OsuDifficultyAttributes as Osu2019DifficultyAttributes, OsuPerformanceAttributes as Osu2019PerformanceAttributes};
 use crate::{Beatmap, GameMods};
 
+// --- Relax EZ rework ---
+// EZ halves CS, AR and OD. On relax there is no tapping, so what EZ really
+// tests is aiming while reading a low approach rate with many circles on
+// screen. The reading skill already rewards the extra density, but the aim
+// side gets punished twice: the bigger circles shrink every normalised
+// distance, and nothing credits reading low AR. Compensate on aim only:
+//   * a flat multiplier for the CS change,
+//   * a low-AR bonus that scales with the *effective* AR (clock-rate adjusted,
+//     so EZDT at high rates barely gets it) and with map length, like the
+//     old ppv2 AR factor.
+// Acc pp is left alone: the 1.52^OD scaling already reflects the wider
+// hit windows, which really are trivial on relax.
+
+/// AR below which EZ starts to receive the low-AR aim bonus.
+const EZ_LOW_AR_THRESHOLD: f32 = 8.0;
+/// Bonus per point of AR below the threshold (AR 4.5 -> +14% on a long map).
+const EZ_LOW_AR_BONUS_PER_AR: f32 = 0.04;
+/// Number of objects at which the low-AR bonus reaches full strength.
+const EZ_LOW_AR_FULL_LENGTH: f32 = 1000.0;
+/// Flat aim compensation for the halved circle size.
+const EZ_AIM_MULTIPLIER: f32 = 1.10;
+
+/// Aim multiplier applied to EZ plays on relax.
+pub(crate) fn relax_ez_aim_multiplier(effective_ar: f32, total_hits: f32) -> f32 {
+    let ar_below = (EZ_LOW_AR_THRESHOLD - effective_ar).max(0.0);
+    let length_scale = (total_hits / EZ_LOW_AR_FULL_LENGTH).min(1.0);
+
+    EZ_AIM_MULTIPLIER * (1.0 + EZ_LOW_AR_BONUS_PER_AR * ar_below * length_scale)
+}
+
 /// Calculator for pp on osu!standard maps.
 ///
 /// # Example
@@ -370,6 +400,11 @@ impl<'m> OsuPP<'m> {
         aim_value *= self.acc.unwrap().powf(1.5) * 0.85;
         aim_value *= 0.98 + attributes.od as f32 * attributes.od as f32 / 2500.0;
 
+        // Relax EZ rework (see the constants at the top of the file)
+        if self.mods.ez() {
+            aim_value *= relax_ez_aim_multiplier(attributes.effective_ar as f32, total_hits);
+        }
+
         aim_value
     }
 
@@ -531,5 +566,30 @@ impl OsuAttributeProvider for Osu2019PerformanceAttributes {
     #[inline]
     fn attributes(self) -> Option<Osu2019DifficultyAttributes> {
         Some(self.difficulty)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{relax_ez_aim_multiplier, EZ_AIM_MULTIPLIER};
+
+    #[test]
+    fn ez_bonus_is_flat_at_high_ar() {
+        assert!((relax_ez_aim_multiplier(9.0, 2000.0) - EZ_AIM_MULTIPLIER).abs() < 1e-6);
+    }
+
+    #[test]
+    fn ez_bonus_grows_as_ar_drops() {
+        assert!(relax_ez_aim_multiplier(3.0, 2000.0) > relax_ez_aim_multiplier(5.0, 2000.0));
+        assert!(relax_ez_aim_multiplier(5.0, 2000.0) > relax_ez_aim_multiplier(7.9, 2000.0));
+    }
+
+    #[test]
+    fn ez_bonus_scales_with_length() {
+        assert!(relax_ez_aim_multiplier(4.0, 2000.0) > relax_ez_aim_multiplier(4.0, 300.0));
+        assert!(
+            (relax_ez_aim_multiplier(4.0, 1000.0) - relax_ez_aim_multiplier(4.0, 5000.0)).abs()
+                < 1e-6
+        );
     }
 }
