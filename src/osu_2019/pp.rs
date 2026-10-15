@@ -31,6 +31,11 @@ pub(crate) fn relax_ez_aim_multiplier(effective_ar: f32, total_hits: f32) -> f32
     EZ_AIM_MULTIPLIER * (1.0 + EZ_LOW_AR_BONUS_PER_AR * ar_below * length_scale)
 }
 
+// --- Slider nerf for dropped slider ends ---
+/// Share of the slider part of aim removed once every difficult slider is dropped (lazer: 1.0).
+const SLIDER_NERF_MAX_STRENGTH: f32 = 0.7;
+/// How fast the nerf ramps up with dropped slider ends; 1.0 is linear (lazer: 3.0, front-loaded).
+const SLIDER_NERF_EXPONENT: f32 = 1.0;
 /// Calculator for pp on osu!standard maps.
 ///
 /// # Example
@@ -358,11 +363,35 @@ impl<'m> OsuPP<'m> {
         let attributes = self.attributes.as_ref().unwrap();
 
         // TD penalty
-        let raw_aim = if self.mods.td() {
+        let mut raw_aim = if self.mods.td() {
             attributes.aim_strain.powf(0.8) as f32
         } else {
             attributes.aim_strain as f32
         };
+
+        // Slider nerf: take away the slider part of aim for each difficult slider
+        // whose end was likely dropped (classic scores: all missing combo counts as dropped ends).
+        if attributes.n_sliders > 0 && attributes.aim_difficult_slider_count > 0.0 {
+            let max_possible_dropped = (self.n100.unwrap_or(0)
+                + self.n50.unwrap_or(0)
+                + self.n_misses) as f32;
+            let missing_combo = attributes.max_combo as f32
+                - self.combo.unwrap_or(attributes.max_combo as u32) as f32;
+
+            let dropped_difficult_sliders = max_possible_dropped
+                .min(missing_combo)
+                .clamp(0.0, attributes.aim_difficult_slider_count);
+
+            // Never take away more than `SLIDER_NERF_MAX_STRENGTH` of the slider part of aim.
+            let min_factor = 1.0 - SLIDER_NERF_MAX_STRENGTH * (1.0 - attributes.slider_factor);
+
+            let slider_nerf_factor = (1.0 - min_factor)
+                * (1.0 - dropped_difficult_sliders / attributes.aim_difficult_slider_count)
+                    .powf(SLIDER_NERF_EXPONENT)
+                + min_factor;
+
+            raw_aim *= slider_nerf_factor;
+        }
 
         let mut aim_value = (5.0 * (raw_aim / 0.0675).max(1.0) - 4.0).powi(3) / 100_000.0;
 

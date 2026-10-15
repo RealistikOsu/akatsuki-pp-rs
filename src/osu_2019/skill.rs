@@ -11,6 +11,13 @@ const AIM_STRAIN_DECAY_BASE: f32 = 0.15;
 
 const DECAY_WEIGHT: f32 = 0.9;
 
+/// Rank (as a fraction of all sections, hardest first) of the peak used as the map's baseline.
+const ISOLATED_SPIKE_BASELINE: f32 = 0.10;
+/// Peaks above `baseline * ISOLATED_SPIKE_RATIO` count as an isolated spike.
+const ISOLATED_SPIKE_RATIO: f32 = 2.4;
+/// Share of a spike's excess over the threshold that is kept.
+const ISOLATED_SPIKE_KEEP: f32 = 0.35;
+
 /// Maximum number of recent objects to keep for angle repetition lookback
 const MAX_RECENT_OBJECTS: usize = 8;
 
@@ -47,6 +54,11 @@ impl Skill {
 
             recent_objects: Vec::with_capacity(MAX_RECENT_OBJECTS),
         }
+    }
+
+    #[inline]
+    pub(crate) fn current_strain(&self) -> f32 {
+        self.current_strain
     }
 
     #[inline]
@@ -124,6 +136,25 @@ impl Skill {
 
         self.strain_peaks
             .sort_unstable_by(|a, b| b.partial_cmp(a).unwrap_or(Ordering::Equal));
+
+        // --- Isolated Spike Penalty (aim) ---
+        // Like the backload penalty, but anywhere in the map: a short stretch that is far
+        // harder than the map's typical hard sections (the peak at the top 10%) gets pulled
+        // towards that level, so one jump section can't carry an otherwise easy map.
+        if matches!(self.kind, SkillKind::Aim) && n_sections > 5 {
+            let baseline = self.strain_peaks[(n_sections as f32 * ISOLATED_SPIKE_BASELINE) as usize];
+            let spike_threshold = (baseline * ISOLATED_SPIKE_RATIO).max(1.0);
+
+            // Peaks are sorted hardest first and the mapping keeps their order
+            for peak in self.strain_peaks.iter_mut() {
+                if *peak <= spike_threshold {
+                    break;
+                }
+
+                *peak = spike_threshold + (*peak - spike_threshold) * ISOLATED_SPIKE_KEEP;
+            }
+        }
+        // ------------------------------------
 
         for &strain in self.strain_peaks.iter() {
             difficulty += strain * weight;

@@ -87,7 +87,11 @@ pub fn stars(
     });
 
     let mut aim = Skill::new(SkillKind::Aim);
+    let mut aim_no_sliders = Skill::new(SkillKind::Aim);
     let mut speed = Skill::new(SkillKind::Speed);
+
+    // Aim strains of objects that come right after a slider, i.e. include its travel
+    let mut aim_slider_strains = Vec::new();
 
     // Buffer reading objects for the second pass
     let mut reading_objects: Vec<ReadingObject> = Vec::with_capacity(take);
@@ -96,9 +100,10 @@ pub fn stars(
     let mut current_section_end =
         (map.hit_objects[0].start_time as f32 / section_len).ceil() * section_len;
 
-    let mut prev_prev = None;
+    let mut prev_prev: Option<OsuObject> = None;
     let mut prev = hit_objects.next().unwrap();
     let mut prev_vals = None;
+    let mut prev_vals_no_sliders = None;
 
     // Store first object for reading
     reading_objects.push(ReadingObject {
@@ -116,9 +121,19 @@ pub fn stars(
         &curr,
         &prev,
         prev_vals,
-        prev_prev,
+        prev_prev.as_ref(),
         map_attributes.clock_rate() as f32,
         scaling_factor,
+        true,
+    );
+    let h_no_sliders = DifficultyObject::new(
+        &curr,
+        &prev,
+        prev_vals_no_sliders,
+        prev_prev.as_ref(),
+        map_attributes.clock_rate() as f32,
+        scaling_factor,
+        false,
     );
 
     while h.base.time as f32 > current_section_end {
@@ -126,7 +141,12 @@ pub fn stars(
     }
 
     aim.process(&h);
+    aim_no_sliders.process(&h_no_sliders);
     speed.process(&h);
+
+    if h.travel_dist > 0.0 {
+        aim_slider_strains.push(aim.current_strain());
+    }
 
     // Store for reading
     reading_objects.push(ReadingObject {
@@ -140,6 +160,7 @@ pub fn stars(
 
     prev_prev = Some(prev);
     prev_vals = Some((h.jump_dist, h.strain_time));
+    prev_vals_no_sliders = Some((h_no_sliders.jump_dist, h_no_sliders.strain_time));
     prev = curr;
 
     // Handle all other objects
@@ -148,14 +169,26 @@ pub fn stars(
             &curr,
             &prev,
             prev_vals,
-            prev_prev,
+            prev_prev.as_ref(),
             map_attributes.clock_rate() as f32,
             scaling_factor,
+            true,
+        );
+        let h_no_sliders = DifficultyObject::new(
+            &curr,
+            &prev,
+            prev_vals_no_sliders,
+            prev_prev.as_ref(),
+            map_attributes.clock_rate() as f32,
+            scaling_factor,
+            false,
         );
 
         while h.base.time as f32 > current_section_end {
             aim.save_current_peak();
             aim.start_new_section_from(current_section_end);
+            aim_no_sliders.save_current_peak();
+            aim_no_sliders.start_new_section_from(current_section_end);
             speed.save_current_peak();
             speed.start_new_section_from(current_section_end);
 
@@ -163,7 +196,12 @@ pub fn stars(
         }
 
         aim.process(&h);
+        aim_no_sliders.process(&h_no_sliders);
         speed.process(&h);
+
+        if h.travel_dist > 0.0 {
+            aim_slider_strains.push(aim.current_strain());
+        }
 
         // Store for reading
         reading_objects.push(ReadingObject {
@@ -177,14 +215,24 @@ pub fn stars(
 
         prev_prev = Some(prev);
         prev_vals = Some((h.jump_dist, h.strain_time));
+        prev_vals_no_sliders = Some((h_no_sliders.jump_dist, h_no_sliders.strain_time));
         prev = curr;
     }
 
     aim.save_current_peak();
+    aim_no_sliders.save_current_peak();
     speed.save_current_peak();
 
     let aim_strain = aim.difficulty_value().sqrt() * DIFFICULTY_MULTIPLIER;
+    let aim_no_sliders_strain = aim_no_sliders.difficulty_value().sqrt() * DIFFICULTY_MULTIPLIER;
     let speed_strain = speed.difficulty_value().sqrt() * DIFFICULTY_MULTIPLIER;
+
+    let slider_factor = if aim_strain > 0.0 {
+        (aim_no_sliders_strain / aim_strain).min(1.0)
+    } else {
+        1.0
+    };
+    let aim_difficult_slider_count = difficult_slider_count(&aim_slider_strains);
 
     let aim_difficult_strain_count = aim.count_difficult_strains();
     let speed_difficult_strain_count = speed.count_difficult_strains();
@@ -240,10 +288,25 @@ pub fn stars(
     diff_attributes.aim_difficult_strain_count = aim_difficult_strain_count;
     diff_attributes.speed_difficult_strain_count = speed_difficult_strain_count;
     diff_attributes.reading_difficult_note_count = reading_difficult_note_count;
+    diff_attributes.slider_factor = slider_factor;
+    diff_attributes.aim_difficult_slider_count = aim_difficult_slider_count;
 
     diff_attributes
 }
 
+/// Weighted count of sliders whose aim strain is close to the hardest slider's (lazer's `GetDifficultSliderCount`).
+fn difficult_slider_count(slider_strains: &[f32]) -> f32 {
+    let max_slider_strain = slider_strains.iter().copied().fold(0.0, f32::max);
+
+    if max_slider_strain <= 0.0 {
+        return 0.0;
+    }
+
+    slider_strains
+        .iter()
+        .map(|strain| 1.0 / (1.0 + (-(strain / max_slider_strain * 12.0 - 6.0)).exp()))
+        .sum()
+}
 /// Inverse of [`ar_to_preempt`]: convert a (possibly clock-rate adjusted) preempt back to an AR value.
 fn preempt_to_ar(preempt: f32) -> f32 {
     if preempt < AR_PREEMPT_MID {
@@ -285,6 +348,9 @@ pub struct OsuDifficultyAttributes {
     pub aim_difficult_strain_count: f32,
     pub speed_difficult_strain_count: f32,
     pub reading_difficult_note_count: f32,
+    /// Aim strain without slider following divided by aim strain with it.
+    pub slider_factor: f32,
+    pub aim_difficult_slider_count: f32,
 }
 
 #[derive(Clone, Debug)]
