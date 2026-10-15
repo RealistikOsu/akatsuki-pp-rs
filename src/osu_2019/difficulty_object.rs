@@ -24,16 +24,24 @@ impl<'h> DifficultyObject<'h> {
         base: &'h OsuObject,
         prev: &OsuObject,
         prev_vals: Option<(f32, f32)>, // (jump_dist, strain_time)
-        prev_prev: Option<OsuObject>,
+        prev_prev: Option<&OsuObject>,
         clock_rate: f32,
         scaling_factor: f32,
+        follow_sliders: bool,
     ) -> Self {
         let delta = (base.time - prev.time) / clock_rate;
         let strain_time = delta.max(50.0);
 
+        // Without slider following, the cursor is assumed to stay on each slider's head.
+        let cursor_pos = |obj: &OsuObject| if follow_sliders { obj.end_pos } else { obj.pos };
+
         let pos = base.pos;
-        let travel_dist = prev.travel_dist.unwrap_or(0.0);
-        let prev_cursor_pos = prev.end_pos;
+        let travel_dist = if follow_sliders {
+            prev.travel_dist.unwrap_or(0.0)
+        } else {
+            0.0
+        };
+        let prev_cursor_pos = cursor_pos(prev);
 
         let jump_dist = if base.is_spinner() {
             0.0
@@ -52,7 +60,7 @@ impl<'h> DifficultyObject<'h> {
         };
 
         let angle = prev_prev.map(|prev_prev| {
-            let prev_prev_cursor_pos = prev_prev.end_pos;
+            let prev_prev_cursor_pos = cursor_pos(prev_prev);
 
             let v1 = prev_prev_cursor_pos - prev.pos;
             let v2 = pos - prev_cursor_pos;
